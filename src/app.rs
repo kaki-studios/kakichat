@@ -4,6 +4,7 @@ mod chat;
 use crate::app::chat::*;
 use crate::error_template::{AppError, ErrorTemplate};
 use leptos::html::Input;
+use leptos::logging::log;
 use leptos::{ev::SubmitEvent, *};
 use leptos_meta::*;
 use leptos_router::*;
@@ -73,10 +74,15 @@ fn SignInPage() -> impl IntoView {
             // this means we can call`HtmlInputElement::value()`
             // to get the current value of the input
             .value();
-        (usernamecx.set_username)(value);
-        //TODO: redirect user to /chat
-        //also in chat, redirect them back (or just show error message) if their username is empty!
+        (usernamecx.set_username)(value.clone());
+        if value != "" {
+            let navigate = leptos_router::use_navigate();
+            navigate("/chat", Default::default());
+        }
+        //working
+        //TODO: use cookies instead of context for persistence (simple, client-side, no validation)
     };
+
     view! {
         <h1> Hi! Welcome to kakichat! To start chatting, please enter a username:</h1>
         <form on:submit=on_submit>
