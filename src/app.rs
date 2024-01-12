@@ -1,11 +1,15 @@
 #[path = "chat.rs"]
 mod chat;
 
+use std::str::FromStr;
+
 use crate::app::chat::*;
 use crate::error_template::{AppError, ErrorTemplate};
+use http::{HeaderName, HeaderValue, StatusCode};
 use leptos::html::Input;
-use leptos::logging::log;
+
 use leptos::{ev::SubmitEvent, *};
+use leptos_axum::ResponseOptions;
 use leptos_meta::*;
 use leptos_router::*;
 
@@ -94,4 +98,27 @@ fn SignInPage() -> impl IntoView {
         </form>
         <p>{usernamecx.username}</p>
     }
+}
+
+//TODO: use this functio using an <ActionForm> !!!!!!!!!!
+#[server(SignIn, "/api")]
+pub async fn sign_in(username: String) -> Result<(), ServerFnError> {
+    let response = expect_context::<ResponseOptions>();
+    if username != "" {
+        response.set_status(StatusCode::FOUND);
+        response.insert_header(
+            axum::http::header::SET_COOKIE,
+            HeaderValue::from_str(&format!("username={}", username)).map_err(|_| {
+                ServerFnError::Deserialization("couldn\'t create cookie".to_string())
+            })?,
+        );
+        response.insert_header(
+            axum::http::header::LOCATION,
+            HeaderValue::from_str("/chat")
+                .map_err(|_| ServerFnError::ServerError("could\'t redirect to /chat".into()))?,
+        );
+    } else {
+        response.set_status(StatusCode::BAD_REQUEST);
+    }
+    Ok(())
 }
