@@ -72,6 +72,7 @@ fn SignInPage() -> impl IntoView {
 //TODO: use localstorage instead!! link: https://leptos-use.rs/storage/use_local_storage.html
 //TODO: chat will use websockets: check ~/git_clones/axum/examples/chat for an example. It needs
 //the ws feature flag for axum!
+//ALSO: for client-side websockets, see: https://leptos-use.rs/network/use_websocket.html
 //TODO: style the webpage!! MAKE IT LOOK GOOD
 //NOTE: try to keep code concise and dont jump to conclusions without researching first!
 #[server(SignIn, "/api")]
