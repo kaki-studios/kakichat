@@ -1,13 +1,11 @@
-#[path = "chat.rs"]
-mod chat;
-
-use crate::app::chat::*;
+use crate::chat::*;
 use crate::error_template::{AppError, ErrorTemplate};
-use http::{HeaderValue, StatusCode};
+use leptos::html::Input;
 
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+use leptos_use::storage::{use_local_storage, StringCodec};
 
 #[derive(Debug, Clone)]
 pub struct UsernameContext {
@@ -59,41 +57,52 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn SignInPage() -> impl IntoView {
-    let sign_in = create_server_action::<SignIn>();
+    let (username, set_username, _reset) = use_local_storage::<String, StringCodec>("username");
+    if !username.get().is_empty() {
+        let navigate = leptos_router::use_navigate();
+        navigate("/chat", Default::default());
+    }
+    let input_element: NodeRef<Input> = create_node_ref();
+    use leptos::ev::SubmitEvent;
+    let on_submit = move |ev: SubmitEvent| {
+        // stop the page from reloading!
+        ev.prevent_default();
+
+        // here, we'll extract the value from the input
+        let value = input_element()
+            // event handlers can only fire after the view
+            // is mounted to the DOM, so the `NodeRef` will be `Some`
+            .expect("<input> to exist")
+            // `NodeRef` implements `Deref` for the DOM element type
+            // this means we can call`HtmlInputElement::value()`
+            // to get the current value of the input
+            .value();
+        set_username(value);
+        let navigate = leptos_router::use_navigate();
+        navigate("/chat", Default::default());
+    };
 
     view! {
-        <ActionForm action=sign_in>
-            <input type="text" name="username"/>
-            <input type="submit" value="Sign In!"/>
-        </ActionForm>
+        // <input
+        //     class="block"
+        //     prop:value=move || username.get()
+        //     on:input=move |e| set_username.update(|s| *s = event_target_value(&e))
+        //     type="text"
+        // />
+        <form on:submit=on_submit>
+            <input type="text"
+                value=username
+                node_ref=input_element
+            />
+            <input type="submit" value="Submit"/>
+        </form>
+        <p>"Submit your username to start chatting!"</p>
     }
 }
 
-//TODO: use localstorage instead!! link: https://leptos-use.rs/storage/use_local_storage.html
+//TODO: use localstorage! link: https://leptos-use.rs/storage/use_local_storage.html
 //TODO: chat will use websockets: check ~/git_clones/axum/examples/chat for an example. It needs
 //the ws feature flag for axum!
 //ALSO: for client-side websockets, see: https://leptos-use.rs/network/use_websocket.html
 //TODO: style the webpage!! MAKE IT LOOK GOOD
 //NOTE: try to keep code concise and dont jump to conclusions without researching first!
-#[server(SignIn, "/api")]
-pub async fn sign_in(username: String) -> Result<(), ServerFnError> {
-    use leptos_axum::ResponseOptions;
-    let response = expect_context::<ResponseOptions>();
-    if username != "" {
-        response.set_status(StatusCode::FOUND);
-        response.insert_header(
-            axum::http::header::SET_COOKIE,
-            HeaderValue::from_str(&format!("username={} SameSite=None", username)).map_err(
-                |_| ServerFnError::Deserialization("couldn\'t create cookie".to_string()),
-            )?,
-        );
-        response.insert_header(
-            axum::http::header::LOCATION,
-            HeaderValue::from_str("/chat")
-                .map_err(|_| ServerFnError::ServerError("could\'t redirect to /chat".into()))?,
-        );
-    } else {
-        response.set_status(StatusCode::BAD_REQUEST);
-    }
-    Ok(())
-}
