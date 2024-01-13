@@ -1,53 +1,69 @@
 #[cfg(feature = "ssr")]
-#[tokio::main]
-async fn main() {
-    use std::net::Ipv4Addr;
-    use std::net::SocketAddr;
-
-    use axum::{routing::get, routing::post, Router};
-    use kakichat::app::*;
-    use kakichat::chat::*;
-    use kakichat::fileserv::file_and_error_handler;
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    use actix_files::Files;
+    use actix_web::*;
     use leptos::*;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
+    use leptos_actix::{generate_route_list, LeptosRoutes};
+    use kakichat::app::*;
 
-    simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
-
-    // Setting get_configuration(None) means we'll be using cargo-leptos's env values
-    // For deployment these variables are:
-    // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
-    // Alternately a file can be specified such as Some("Cargo.toml")
-    // The file would need to be included with the executable when moved to deployment
     let conf = get_configuration(None).await.unwrap();
-    let leptos_options = conf.leptos_options;
-    let addr = leptos_options.site_addr;
+    let addr = conf.leptos_options.site_addr;
+    // Generate the list of routes in your Leptos App
     let routes = generate_route_list(App);
+    println!("listening on http://{}", &addr);
 
-    let (tx, _rx) = tokio::sync::broadcast::channel(100);
-    let app_state = std::sync::Arc::new(AppState { tx });
-    //TODO: mount the /websocket route somehow!
-    // build our application with a route
-    let app = Router::new()
-        .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
-        .leptos_routes(&leptos_options, routes, App)
-        .fallback(file_and_error_handler)
-        .with_state(leptos_options);
-    // run our app with hyper
-    // `axum::Server` is a re-export of `hyper::Server`
-    log::info!("listening on http://{}", &addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
-    axum::Server::bind(&SocketAddr::new(
-        std::net::IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        1337,
-    ));
+    HttpServer::new(move || {
+        let leptos_options = &conf.leptos_options;
+        let site_root = &leptos_options.site_root;
+
+        App::new()
+            .route("/api/{tail:.*}", leptos_actix::handle_server_fns())
+            // serve JS/WASM/CSS from `pkg`
+            .service(Files::new("/pkg", format!("{site_root}/pkg")))
+            // serve other assets from the `assets` directory
+            .service(Files::new("/assets", site_root))
+            // serve the favicon from /favicon.ico
+            .service(favicon)
+            .leptos_routes(leptos_options.to_owned(), routes.to_owned(), App)
+            .app_data(web::Data::new(leptos_options.to_owned()))
+        //.wrap(middleware::Compress::default())
+    })
+    .bind(&addr)?
+    .run()
+    .await
 }
 
-#[cfg(not(feature = "ssr"))]
+#[cfg(feature = "ssr")]
+#[actix_web::get("favicon.ico")]
+async fn favicon(
+    leptos_options: actix_web::web::Data<leptos::LeptosOptions>,
+) -> actix_web::Result<actix_files::NamedFile> {
+    let leptos_options = leptos_options.into_inner();
+    let site_root = &leptos_options.site_root;
+    Ok(actix_files::NamedFile::open(format!(
+        "{site_root}/favicon.ico"
+    ))?)
+}
+
+#[cfg(not(any(feature = "ssr", feature = "csr")))]
 pub fn main() {
     // no client-side main function
-    // unless we want this to work with e.g., Trunk for a purely client-side app
+    // unless we want this to work with e.g., Trunk for pure client-side testing
     // see lib.rs for hydration function instead
+    // see optional feature `csr` instead
+}
+
+#[cfg(all(not(feature = "ssr"), feature = "csr"))]
+pub fn main() {
+    // a client-side main function is required for using `trunk serve`
+    // prefer using `cargo leptos serve` instead
+    // to run: `trunk serve --open --features csr`
+    use leptos::*;
+    use kakichat::app::*;
+    use wasm_bindgen::prelude::wasm_bindgen;
+
+    console_error_panic_hook::set_once();
+
+    leptos::mount_to_body(App);
 }
