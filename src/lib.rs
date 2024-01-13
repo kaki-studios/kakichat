@@ -1,4 +1,5 @@
 pub mod app;
+pub mod chat;
 use cfg_if::cfg_if;
 
 cfg_if! {

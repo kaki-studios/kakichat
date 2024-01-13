@@ -1,6 +1,9 @@
-use leptos::*;
+use crate::chat::*;
+use leptos::ev::SubmitEvent;
+use leptos::{html::Input, logging::log, *};
 use leptos_meta::*;
 use leptos_router::*;
+use leptos_use::storage::{use_local_storage, StringCodec};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -13,13 +16,14 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/leptos_start.css"/>
 
         // sets the document title
-        <Title text="Welcome to Leptos"/>
+        <Title text="Welcome to kakichat"/>
 
         // content for this welcome page
         <Router>
             <main>
                 <Routes>
-                    <Route path="" view=HomePage/>
+                    <Route path="" view=RegisterPage/>
+                    <Route path="/chat" view=ChatPage/>
                     <Route path="/*any" view=NotFound/>
                 </Routes>
             </main>
@@ -27,16 +31,43 @@ pub fn App() -> impl IntoView {
     }
 }
 
-/// Renders the home page of your application.
+///the page where new users land, they submit a username and start chatting
 #[component]
-fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
+fn RegisterPage() -> impl IntoView {
+    let (username, set_username, _reset) = use_local_storage::<String, StringCodec>("username");
+    if !username.get_untracked().is_empty() {
+        let navigate = leptos_router::use_navigate();
+        navigate("/chat", Default::default());
+    }
+    let input_element: NodeRef<Input> = create_node_ref();
+    let on_submit = move |ev: SubmitEvent| {
+        // stop the page from reloading!
+        ev.prevent_default();
 
+        // here, we'll extract the value from the input
+        let value = input_element()
+            // event handlers can only fire after the view
+            // is mounted to the DOM, so the `NodeRef` will be `Some`
+            .expect("<input> to exist")
+            // `NodeRef` implements `Deref` for the DOM element type
+            // this means we can call`HtmlInputElement::value()`
+            // to get the current value of the input
+            .value();
+        //TODO: this isnt working... in fact the localstorage is never created/initialized!
+        set_username(value);
+        let navigate = leptos_router::use_navigate();
+        navigate("/chat", Default::default());
+    };
     view! {
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        <h1>"Welcome to kakichat!"</h1>
+        <form on:submit=on_submit>
+            <input type="text"
+                value=username
+                node_ref=input_element
+            />
+            <input type="submit" value="Submit"/>
+        </form>
+        <p>"Submit your username to start chatting!"</p>
     }
 }
 
