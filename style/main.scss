@@ -1,4 +1,29 @@
 body {
 	font-family: sans-serif;
 	text-align: center;
+  color: #eee;
+  background: #121212;
 }
+
+.chatbar {
+  width: 100%;
+}
+input[type=text] {
+  width: 50%;
+}
+
+input, button{
+  border: 1px solid #333;
+  background-color: #222222;
+  color: white;
+}
+
+input:focus {
+  background-color: #333333;
+}
+
+// button {
+//
+//   border: 1px solid #333;
+//   background-color: #222222;
+// }

@@ -1,6 +1,6 @@
 use crate::chat::*;
 use leptos::ev::SubmitEvent;
-use leptos::{html::Input, logging::log, *};
+use leptos::{html::Input, *};
 use leptos_meta::*;
 use leptos_router::*;
 use leptos_use::storage::{use_local_storage, StringCodec};
@@ -24,7 +24,9 @@ pub fn App() -> impl IntoView {
                 <Routes>
                     <Route path="" view=RegisterPage/>
                     <Route path="/chat" view=ChatPage/>
+                    <Route path="/change-username" view=ChangeUsernamePage/>
                     <Route path="/*any" view=NotFound/>
+
                 </Routes>
             </main>
         </Router>
@@ -39,6 +41,17 @@ fn RegisterPage() -> impl IntoView {
         let navigate = leptos_router::use_navigate();
         navigate("/chat", Default::default());
     }
+    view! {
+        <h1>"Welcome to kakichat!"</h1>
+        <SetUsernameComponent/>
+        <p>"Submit your username to start chatting!"</p>
+    }
+}
+
+///the component where the user can change their username
+#[component]
+fn SetUsernameComponent() -> impl IntoView {
+    let (username, set_username, _reset) = use_local_storage::<String, StringCodec>("username");
     let input_element: NodeRef<Input> = create_node_ref();
     let on_submit = move |ev: SubmitEvent| {
         // stop the page from reloading!
@@ -53,13 +66,13 @@ fn RegisterPage() -> impl IntoView {
             // this means we can call`HtmlInputElement::value()`
             // to get the current value of the input
             .value();
-        //TODO: this isnt working... in fact the localstorage is never created/initialized!
-        set_username(value);
-        let navigate = leptos_router::use_navigate();
-        navigate("/chat", Default::default());
+        if &value != &"" {
+            set_username(value);
+            let navigate = leptos_router::use_navigate();
+            navigate("/chat", Default::default());
+        }
     };
     view! {
-        <h1>"Welcome to kakichat!"</h1>
         <form on:submit=on_submit>
             <input type="text"
                 value=username
@@ -67,7 +80,14 @@ fn RegisterPage() -> impl IntoView {
             />
             <input type="submit" value="Submit"/>
         </form>
-        <p>"Submit your username to start chatting!"</p>
+    }
+}
+
+#[component]
+fn ChangeUsernamePage() -> impl IntoView {
+    view! {
+        <h1>"Change Username"</h1>
+        <SetUsernameComponent/>
     }
 }
 
