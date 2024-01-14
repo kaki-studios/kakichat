@@ -1,11 +1,19 @@
+pub mod server;
+pub mod session;
+use actix::*;
+use actix_web::{get, web, Error, HttpRequest, HttpResponse};
+use actix_web_actors::ws;
+use leptos::logging;
+use std::time::Instant;
+
 #[cfg(feature = "ssr")]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     use actix_files::Files;
     use actix_web::*;
+    use kakichat::app::*;
     use leptos::*;
     use leptos_actix::{generate_route_list, LeptosRoutes};
-    use kakichat::app::*;
 
     let conf = get_configuration(None).await.unwrap();
     let addr = conf.leptos_options.site_addr;
@@ -59,11 +67,32 @@ pub fn main() {
     // a client-side main function is required for using `trunk serve`
     // prefer using `cargo leptos serve` instead
     // to run: `trunk serve --open --features csr`
-    use leptos::*;
     use kakichat::app::*;
+    use leptos::*;
     use wasm_bindgen::prelude::wasm_bindgen;
 
     console_error_panic_hook::set_once();
 
     leptos::mount_to_body(App);
+}
+
+/// Entry point for our websocket route
+#[get("/ws/{username}")]
+async fn chat_route(
+    req: HttpRequest,
+    stream: web::Payload,
+    username: web::Path<String>,
+    srv: web::Data<Addr<server::ChatServer>>,
+) -> Result<HttpResponse, Error> {
+    logging::log!("HEERE!");
+    ws::start(
+        session::WsChatSession {
+            id: 0,
+            hb: Instant::now(),
+            username: username.to_string(),
+            addr: srv.get_ref().clone(),
+        },
+        &req,
+        stream,
+    )
 }
