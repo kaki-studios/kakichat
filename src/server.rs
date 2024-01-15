@@ -13,7 +13,7 @@ pub struct Message(pub String);
 /// `ChatServer` manages chat rooms and responsible for coordinating chat session.
 ///
 /// Implementation is very naive.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChatServer {
     sessions: HashMap<usize, Recipient<Message>>,
     room: HashSet<usize>,
@@ -45,7 +45,7 @@ pub struct Disconnect {
     pub id: usize,
 }
 impl ChatServer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         ChatServer {
             sessions: HashMap::new(),
             room: HashSet::new(),

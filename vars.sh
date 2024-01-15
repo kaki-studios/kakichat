@@ -1,0 +1,5 @@
+export LEPTOS_OUTPUT_NAME="kakichat"
+export LEPTOS_SITE_ROOT="site"
+export LEPTOS_SITE_PKG_DIR="pkg"
+export LEPTOS_SITE_ADDR="0.0.0.0:7770"
+export LEPTOS_RELOAD_PORT="3001"

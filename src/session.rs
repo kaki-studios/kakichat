@@ -1,3 +1,4 @@
+//NOTE: most code is copied from here: https://github.com/actix/examples/tree/master/websockets/chat
 use std::time::{Duration, Instant};
 
 use actix::prelude::*;

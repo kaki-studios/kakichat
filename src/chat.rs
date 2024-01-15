@@ -1,7 +1,10 @@
+#![allow(unused_assignments)]
+use leptos::html::Input;
 use leptos::*;
-use leptos_use::core::ConnectionReadyState;
 use leptos_use::storage::{use_local_storage, StringCodec};
 use leptos_use::{use_websocket, UseWebsocketReturn};
+
+const SERVER_IP: &'static str = "141.145.204.255";
 
 #[component]
 pub fn ChatPage() -> impl IntoView {
@@ -14,7 +17,6 @@ pub fn ChatPage() -> impl IntoView {
         let navigate = leptos_router::use_navigate();
         navigate("/change-username", Default::default());
     };
-    //TODO: automatically connect to websocket server on page load
     view! {
         <h1>"kakichat"</h1>
         <p>your usename is: {move || username.get()}</p>
@@ -25,33 +27,13 @@ pub fn ChatPage() -> impl IntoView {
 }
 
 #[component]
-pub fn ChatArea() -> impl IntoView {
-    let on_submit = move |ev: leptos::ev::SubmitEvent| {
-        ev.prevent_default();
-        //TODO: send to websocket and clear input
-    };
-    view! {
-        <div id="" style="overflow:scroll; height:35em;">
-        //TODO: chat appears here!
-        </div>
-
-        <form on:submit=on_submit class="chatbar">
-            <input type="text"
-                // value=username
-                // node_ref=input_element
-            />
-            <input type="submit" value="Submit"/>
-        </form>
-        <h1>"TEST:"</h1>
-        <TestChat/>
-    }
-}
-
-#[component]
-fn TestChat() -> impl IntoView {
+fn ChatArea() -> impl IntoView {
     let (history, set_history) = create_signal(vec![]);
 
+    let input_element: NodeRef<Input> = create_node_ref();
+
     let (username, _set_username, _reset) = use_local_storage::<String, StringCodec>("username");
+
     fn update_history(&history: &WriteSignal<Vec<String>>, message: String) {
         let _ = &history.update(|history: &mut Vec<_>| history.push(message));
     }
@@ -62,84 +44,60 @@ fn TestChat() -> impl IntoView {
     let UseWebsocketReturn {
         ready_state,
         message,
-        message_bytes,
         send,
-        send_bytes,
-        open,
-        close,
         ..
     } = use_websocket(&format!(
-        //FIXME: Firefox can’t establish a connection to the server at ws://localhost:8000/ws/kaki/. leptos_start.js:763:12
-        "ws://localhost:8000/ws/{}",
+        "ws://{}:3000/ws/{}",
+        SERVER_IP,
         username.get_untracked()
     ));
 
-    let send_message = move |_| {
-        let m = "Hello, world!";
-        send(m);
-        set_history.update(|history: &mut Vec<_>| history.push(format! {"[send]: {:?}", m}));
-    };
+    // let send_message = move |_| {
+    //     let m = "Hello, world!";
+    //     send(m);
+    //     set_history.update(|history: &mut Vec<_>| history.push(format! {"[sent]: {:?}", m}));
+    // };
 
-    let send_byte_message = move |_| {
-        let m = b"Hello, world!\r\n".to_vec();
-        send_bytes(m.clone());
-        set_history.update(|history: &mut Vec<_>| history.push(format! {"[send_bytes]: {:?}", m}));
-    };
+    let on_submit = move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        let element = input_element().expect("<input> to exist");
+        // here, we'll extract the value from the input
+        let value = element.value();
 
+        if value != "" {
+            send(&value);
+            set_history.update(|history: &mut Vec<_>| history.push(format! {"[sent]: {}", value}));
+        }
+        element.set_value("");
+    };
     let status = move || ready_state().to_string();
-
-    let connected = move || ready_state.get() == ConnectionReadyState::Open;
-
-    let open_connection = move |_| {
-        open();
-    };
-    let close_connection = move |_| {
-        close();
-    };
 
     create_effect(move |_| {
         if let Some(m) = message.get() {
-            update_history(&set_history, format! {"[message]: {:?}", m});
-        };
-    });
-
-    create_effect(move |_| {
-        if let Some(m) = message_bytes.get() {
-            update_history(&set_history, format! {"[message_bytes]: {:?}", m});
+            update_history(&set_history, m);
         };
     });
 
     view! {
 
-                    <h1 class="text-xl lg:text-4xl mb-2">"use_websocket"</h1>
-                    <p>"status: " {status}</p>
-                    <button on:click=send_message disabled=move || !connected()>
-                        "Send"
-                    </button>
-                    <button on:click=send_byte_message disabled=move || !connected()>
-                        "Send bytes"
-                    </button>
-                    <button on:click=open_connection disabled=connected>
-                        "Open"
-                    </button>
-                    <button on:click=close_connection disabled=move || !connected()>
-                        "Close"
-                    </button>
-                    <div class="flex items-center">
-                        <h3 class="text-2xl mr-2">"History"</h3>
-                        <button
-                            on:click=move |_| set_history(vec![])
-                            disabled=move || history.get().len() <= 0
-                        >
-                            "Clear"
-                        </button>
-                    </div>
-                    <For
-                        each=move || history.get().into_iter().enumerate()
-                        key=|(index, _)| *index
-                        let:item
-                    >
-                        <div>{item.1}</div>
-                    </For>
+        <p>"status: " {status}</p>
+        <div>
+            <h3>"Chat:"</h3>
+        </div>
+        <div style="overflow:scroll; height:35em;">
+            <For
+                each=move || history.get().into_iter().enumerate()
+                key=|(index, _)| *index
+                let:item
+            >
+                <div>{item.1}</div>
+            </For>
+        </div>
+        <form on:submit=on_submit class="chatbar">
+            <input type="text"
+                node_ref=input_element
+            />
+            <input type="submit" value="Submit"/>
+        </form>
     }
 }

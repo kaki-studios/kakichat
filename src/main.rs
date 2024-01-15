@@ -19,6 +19,7 @@ async fn main() -> std::io::Result<()> {
     let addr = conf.leptos_options.site_addr;
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(App);
+    let server = server::ChatServer::new().start();
     println!("listening on http://{}", &addr);
 
     HttpServer::new(move || {
@@ -33,8 +34,11 @@ async fn main() -> std::io::Result<()> {
             .service(Files::new("/assets", site_root))
             // serve the favicon from /favicon.ico
             .service(favicon)
+            //websocket service
+            .service(chat_route)
             .leptos_routes(leptos_options.to_owned(), routes.to_owned(), App)
             .app_data(web::Data::new(leptos_options.to_owned()))
+            .app_data(web::Data::new(server.clone()))
         //.wrap(middleware::Compress::default())
     })
     .bind(&addr)?
@@ -84,12 +88,11 @@ async fn chat_route(
     username: web::Path<String>,
     srv: web::Data<Addr<server::ChatServer>>,
 ) -> Result<HttpResponse, Error> {
-    logging::log!("HEERE!");
     ws::start(
         session::WsChatSession {
             id: 0,
             hb: Instant::now(),
-            username: username.to_string(),
+            username: username.into_inner(),
             addr: srv.get_ref().clone(),
         },
         &req,

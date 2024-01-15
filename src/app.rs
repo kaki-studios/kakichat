@@ -35,8 +35,8 @@ pub fn App() -> impl IntoView {
 
 ///the page where new users land, they submit a username and start chatting
 #[component]
-fn RegisterPage() -> impl IntoView {
-    let (username, set_username, _reset) = use_local_storage::<String, StringCodec>("username");
+pub fn RegisterPage() -> impl IntoView {
+    let (username, _set_username, _reset) = use_local_storage::<String, StringCodec>("username");
     if !username.get_untracked().is_empty() {
         let navigate = leptos_router::use_navigate();
         navigate("/chat", Default::default());
