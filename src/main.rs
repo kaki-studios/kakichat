@@ -3,7 +3,6 @@ pub mod session;
 use actix::*;
 use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use leptos::logging;
 use std::time::Instant;
 
 #[cfg(feature = "ssr")]

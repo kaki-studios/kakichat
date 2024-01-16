@@ -6,10 +6,20 @@ body {
 }
 
 .chatbar {
-  width: 100%;
+  width: 75%;
+  margin: 0 auto;
 }
 input[type=text] {
   width: 50%;
+}
+
+.chatbox {
+  overflow: scroll; 
+  height: 35em;
+  width: 75%;
+  margin: 0 auto;
+  margin-bottom: 20px;
+  border: 5px solid #333;
 }
 
 input, button{
