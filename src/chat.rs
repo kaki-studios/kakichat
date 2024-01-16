@@ -4,7 +4,7 @@ use leptos::*;
 use leptos_use::storage::{use_local_storage, StringCodec};
 use leptos_use::{use_websocket, UseWebsocketReturn};
 
-const WEBSOCKET_ADDR: &'static str = "localhost";
+const WEBSOCKET_ADDR: &'static str = "kakichat.fly.dev";
 
 #[component]
 pub fn ChatPage() -> impl IntoView {
@@ -50,7 +50,7 @@ fn ChatArea() -> impl IntoView {
         send,
         ..
     } = use_websocket(&format!(
-        "ws://{}:3000/ws/{}",
+        "ws://{}/ws/{}",
         WEBSOCKET_ADDR,
         username.get_untracked()
     ));
