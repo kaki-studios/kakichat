@@ -120,7 +120,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
             Ok(msg) => msg,
         };
 
-        println!("WEBSOCKET MESSAGE: {msg:?}");
         match msg {
             ws::Message::Ping(msg) => {
                 self.hb = Instant::now();
@@ -130,6 +129,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                 self.hb = Instant::now();
             }
             ws::Message::Text(text) => {
+                println!("WEBSOCKET MESSAGE: {text}");
                 let m = text.trim();
                 let msg = format!("{}: {}", self.username, m.to_owned());
                 // send message to chat server
@@ -138,6 +138,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
             }
             ws::Message::Binary(_) => println!("Unexpected binary"),
             ws::Message::Close(reason) => {
+                println!("WEBSOCKET CLOSE: {:?}", reason);
                 ctx.close(reason);
                 ctx.stop();
             }

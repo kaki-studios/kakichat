@@ -4,14 +4,16 @@ use leptos::*;
 use leptos_use::storage::{use_local_storage, StringCodec};
 use leptos_use::{use_websocket, UseWebsocketReturn};
 
-const WEBSOCKET_ADDR: &'static str = "kakichat.fly.dev";
-
 #[component]
 pub fn ChatPage() -> impl IntoView {
     let (username, _set_username, _reset) = use_local_storage::<String, StringCodec>("username");
     if username.get_untracked().is_empty() {
-        let navigate = leptos_router::use_navigate();
-        navigate("/", Default::default());
+        // let navigate = leptos_router::use_navigate();
+        // navigate("/", Default::default());
+        #[cfg(target_family = "wasm")]
+        if let Some(location) = document().location() {
+            let _ = location.set_href("/");
+        }
     }
     let change_username = move |_| {
         let navigate = leptos_router::use_navigate();
@@ -49,11 +51,7 @@ fn ChatArea() -> impl IntoView {
         message,
         send,
         ..
-    } = use_websocket(&format!(
-        "ws://{}/ws/{}",
-        WEBSOCKET_ADDR,
-        username.get_untracked()
-    ));
+    } = use_websocket(&format!("/ws/{}", username.get_untracked()));
 
     // let send_message = move |_| {
     //     let m = "Hello, world!";

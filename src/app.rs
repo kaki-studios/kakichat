@@ -38,8 +38,12 @@ pub fn App() -> impl IntoView {
 pub fn RegisterPage() -> impl IntoView {
     let (username, _set_username, _reset) = use_local_storage::<String, StringCodec>("username");
     if !username.get_untracked().is_empty() {
-        let navigate = leptos_router::use_navigate();
-        navigate("/chat", Default::default());
+        // let navigate = leptos_router::use_navigate();
+        // navigate("/chat", Default::default());
+        #[cfg(target_family = "wasm")]
+        if let Some(location) = document().location() {
+            let _ = location.set_href("/chat");
+        }
     }
     view! {
         <h1>"Welcome to kakichat!"</h1>
