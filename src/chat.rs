@@ -37,13 +37,12 @@ fn ChatArea() -> impl IntoView {
     let (username, _set_username, _reset) = use_local_storage::<String, StringCodec>("username");
 
     fn update_history(&history: &WriteSignal<Vec<String>>, message: String) {
+        let _ = &history.update(|history: &mut Vec<_>| history.push(message));
         let chat = document()
             .get_element_by_id("chat")
             .expect("chatbox to exist");
 
         chat.set_scroll_top(chat.scroll_height());
-
-        let _ = &history.update(|history: &mut Vec<_>| history.push(message));
     }
 
     let UseWebsocketReturn {
@@ -53,12 +52,6 @@ fn ChatArea() -> impl IntoView {
         ..
     } = use_websocket(&format!("/ws/{}", username.get_untracked()));
 
-    // let send_message = move |_| {
-    //     let m = "Hello, world!";
-    //     send(m);
-    //     set_history.update(|history: &mut Vec<_>| history.push(format! {"[sent]: {:?}", m}));
-    // };
-
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
         let element = input_element().expect("<input> to exist");
@@ -67,13 +60,8 @@ fn ChatArea() -> impl IntoView {
 
         if value != "" {
             send(&value);
-            set_history.update(|history: &mut Vec<_>| history.push(format! {"[sent]: {}", value}));
-            //BAD: this is copied from line 39
-            let chat = document()
-                .get_element_by_id("chat")
-                .expect("chatbox to exist");
 
-            chat.set_scroll_top(chat.scroll_height());
+            update_history(&set_history, format!("[sent]: {}", value));
         }
         element.set_value("");
     };
